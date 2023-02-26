@@ -4,44 +4,16 @@
 
 import random
 import pygame
-from numpy import arange
-
-
-import imageio
-import os
-directory_now = os.path.dirname(os.path.realpath(__file__))
-
-class savePygameAsGif:
-    def __init__(self, totDuration, finalH, finalW, directory) -> None:
-        self.totDuration = totDuration
-        self.finalH = finalH
-        self.finalW = finalW
-        self.frames = []
-        self.nbFrame = 0
-        self.directory = directory
-        os.makedirs(self.directory+'/gifImage/')
+import numpy as np
         
-    def add_image(self, frame:pygame.Surface):
-        shrunk_surface = pygame.transform.smoothscale(frame, (frame.get_width()*self.finalW, frame.get_height()*self.finalH))
-        pygame.image.save(shrunk_surface, self.directory+'\\gifImage\\' +'temp' + str(self.nbFrame) + '.png')
-        self.nbFrame += 1
-        
-    def save(self):
-        images = []
-        for i in range(self.nbFrame):
-            images.append(imageio.imread(self.directory+'\\gifImage\\temp'+str(i)+'.png'))
-        imageio.mimsave(self.directory+'\\gif1.gif', images, duration=0.01)
-    
-        os.remove(self.directory+'\\gifImage\\')
-        
-togif = savePygameAsGif(5, 0.1, 0.1, directory_now)
-
 pygame.init()
 
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 sizex, heightWindow = pygame.display.get_surface().get_size()
 
 distanceBTpoints = 250
+
+# M = np.array([[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]])
 
 def getCenter(p):
     np = [p[0]]
@@ -52,37 +24,29 @@ def getCenter(p):
         np.append(p[i]) 
     return np
     
-def bezier(n1, t):
-    new_point = []
-    for i in range(len(n1)-1):
-        vx = (-n1[i][0]+n1[i+1][0])
-        vy = (-n1[i][1]+n1[i+1][1])
-        new_point.append((int(n1[i][0]+vx*t), int(n1[i][1]+vy*t)))
-    return new_point
-    
 class Curve:
     def __init__(self) -> None:
-        self.FullCurve = []
-        self.mainPoints = [[distanceBTpoints*i, 500] for i in range(3)]
-
-    def getAllPoints(self, p):
-        print(p)
-        newpoints =[]
-        for t in arange(0, 1.02, 0.01):
-            n1 = p
-            for _ in range(len(p)-1):
-                n1 = bezier(n1, t)
-            newpoints += n1
-        return newpoints
-
-    def CreateNewCurvePart(self, points):
-        Newpoints = points[1:-1]
-        curve1 = self.getAllPoints(Newpoints)
-        return curve1
+        self.FullCurve:list[CurvePart] = [] # list of all curve parts
+        
+        # points used to make the next part of the main curve, at each step the first point is removed will a new one is added
+        self.mainPoints = [[distanceBTpoints*i, 500] for i in range(3)] 
+    
+    def bezierCurve(self, points):
+        # 3 point Bezier curve generation
+        # yield all points of the bezier curve has list [x, y]
+        
+        M = np.array([[0, 0, 1], [0, 2, -2], [1, -2, 1]])
+        Mt = lambda x: np.array([1, x, x**2])
+        
+        return [(np.matmul(np.matmul(Mt(t), M), points)).astype(int) for t in np.arange(0, 1.01, 0.01)][::-1]
         
     def addCurve(self):
+        # update main points:
         self.mainPoints = [[0, self.mainPoints[1][1]], [distanceBTpoints, self.mainPoints[2][1]], [distanceBTpoints*2, random.randint(heightWindow//2, heightWindow - 150)]]
-        curvePart = self.CreateNewCurvePart(getCenter(self.mainPoints))
+        
+        # get new curve part with bezier
+        curvePart = self.bezierCurve(np.array(getCenter(self.mainPoints)[1:-1]))
+        
         newCP = CurvePart()
         newCP.points = curvePart
         self.FullCurve.append(newCP)
@@ -99,7 +63,6 @@ class CurvePart:
     points = []
     
 mainCurve = Curve()
-n = 0
 while True:
     for event in pygame.event.get():
         if event.type == 256:
@@ -117,15 +80,7 @@ while True:
             pygame.draw.rect(screen, (58, 200, 35), pygame.Rect(x, curve.points[i][1], curve.points[i+1][0]-curve.points[i][0], 30))
             
     pygame.display.flip()
-    if n>3000 and n%10==0:
-        togif.add_image(screen.copy())
-    if n==10000:
-        togif.save()
-        exit()
         
-    
-    n += 1
-    
         
     
             
