@@ -51,12 +51,17 @@ class Curve:
         # add the curve part to the full curve
         self.FullCurve.append(CurvePart(curvePart))
 
-    def updateCurve(self):
-        if not self.FullCurve or self.FullCurve[-1].posX <= sizex - distanceBTpoints :
-            self.addCurve()
-            
-        if self.FullCurve[0].posX < -distanceBTpoints:
-            self.FullCurve.pop(0)
+    def updateCurve(self, n=1):
+        for _ in range(n):
+
+            if not self.FullCurve or self.FullCurve[-1].posX <= sizex - distanceBTpoints :
+                self.addCurve()
+                
+            if self.FullCurve[0].posX < -distanceBTpoints:
+                self.FullCurve.pop(0)
+
+            for curve in self.FullCurve:
+                curve.posX -= 3
 
 class CurvePart:
     def __init__(self, points) -> None:
@@ -154,6 +159,7 @@ class Car:
 
 def main():
     mainCurve = Curve()
+    mainCurve.updateCurve(5000)
     car = Car()
 
     while True:
@@ -172,7 +178,7 @@ def main():
         screen.fill((116, 0, 241))
 
         for curve in mainCurve.FullCurve:
-            curve.posX -= 3
+            
             screen.blit(curve.surface, (curve.posX, 0))
         
         car.draw(yposW1, vx, vy)
