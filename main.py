@@ -6,7 +6,7 @@ import random
 import pygame
 import numpy as np
 import time
-        
+
 pygame.init()
 
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -60,28 +60,125 @@ class Curve:
 
 class CurvePart:
     def __init__(self, points) -> None:
-        self.posX = sizex -2
-        self.surface = pygame.Surface((points[-1][0]-points[1][0] , heightWindow))
+        self.posX = sizex -2 
+        self.points = points
+        print(points[-1][0]-points[1][0] )
+        self.surface = pygame.Surface(((points[-1][0]-points[1][0]) , heightWindow))
         self.create_surface(points)
         
     def create_surface(self, p):
         self.surface.fill((116, 208, 241))
         for i in range(len(p)-1):
-            pygame.draw.rect(self.surface, (143, 89, 34), pygame.Rect(p[i][0]-125, p[i][1], p[i+1][0]-p[i][0], 1002))
-            pygame.draw.rect(self.surface, (58, 200, 35), pygame.Rect(p[i][0]-125, p[i][1], p[i+1][0]-p[i][0], 30))
+            pygame.draw.rect(self.surface, (143, 89, 34), pygame.Rect(p[i][0] - distanceBTpoints/2, p[i][1], p[i+1][0]-p[i][0], 1002))
+            pygame.draw.rect(self.surface, (58, 200, 35), pygame.Rect(p[i][0] - distanceBTpoints/2, p[i][1], p[i+1][0]-p[i][0], 30))
     
-mainCurve = Curve()
-while True:
-    for event in pygame.event.get():
-        if event.type == 256:
-            exit()
-            
-    mainCurve.updateCurve()
-    
-    screen.fill((116, 0, 241))
+class Car:
+    def __init__(self) -> None:
+        self.posCar = 400
+        self.lengthCar = 100
+        self.speed = 3
 
-    for curve in mainCurve.FullCurve:
-        curve.posX -= 3
-        screen.blit(curve.surface, (curve.posX, 0))
-            
-    pygame.display.flip()
+    def distbtPoints(self, a, b, c, d):
+        return np.sqrt((a-c)**2+(b-d)**2)
+
+    def draw(self, yposW1, vx, vy):
+        # get the perpendicular of the vector btw the two wheels
+        x = vy
+        y = -vx
+
+        a = self.lengthCar / 125 # scale of the car
+
+        BackWheel  = [self.posCar + x * a * 25, yposW1 + y * a * 25] # center pos of the back wheel
+        FrontWheel = [self.posCar + x * a * 25 + self.lengthCar * vx , yposW1 + y * a * 25 + self.lengthCar * vy] # same, front wheel
+        
+        wheels = [BackWheel, FrontWheel]
+        
+        body    = [[self.posCar + (vx * p[0] + x * p[1]) * a, yposW1 + (vy * p[0] + y * p[1]) * a] for p in [[-30, 30], [-30, 100], [-20, 110], [90, 110], [135, 75], [160, 70], [160, 30]]]
+        reactor = [[self.posCar + (vx * p[0] + x * p[1]) * a, yposW1 + (vy * p[0] + y * p[1]) * a] for p in [[-30, 42], [-45, 40], [-45, 90], [-30, 88]]]
+        flame1  = [[self.posCar + (vx * p[0] + x * p[1]) * a, yposW1 + (vy * p[0] + y * p[1]) * a] for p in [[-45, 45], [-45, 85], [-100 ,90], [-55 ,72], [-120, 65], [-55, 58], [-100, 40]]]
+        flame2  = [[self.posCar + (vx * p[0] + x * p[1]) * a, yposW1 + (vy * p[0] + y * p[1]) * a] for p in [[-45, 50], [-45, 80],  [-85 ,87], [-45 ,72], [-95, 65], [-45, 58], [-85, 43]]]
+        
+        car = [body, (200, 20, 20), reactor, (20, 20, 20)]
+        flame = [flame1, (251, 163, 26), flame2, (255, 213, 0)]
+
+        for i in range(0, len(car), 2):
+            pygame.draw.polygon(screen, car[i+1], car[i])
+
+        pygame.draw.circle(screen, (30, 30, 30), wheels[0], self.lengthCar/5)
+        pygame.draw.circle(screen, (30, 30, 30), wheels[1], self.lengthCar/5)
+        
+
+    def findPosCar(self, FullCurve):
+        # get the y position of the back wheel and the inclination of the car
+
+        # first we get the corresponding part of the mainCurve:
+        for c in FullCurve:
+            if c.posX - 3 < self.posCar and c.posX + 3 + distanceBTpoints > self.posCar:
+                break
+
+        # on this part of the curve, we find the closest point to the wheel
+        smallOne = 3000
+        yposW1 = 0
+
+        for point in c.points:
+            x, y = point
+            d = abs(x +  c.posX - distanceBTpoints/2  - self.posCar)
+            if d < smallOne:
+                smallOne = d
+                yposW1 = y
+        # yposW1 is the height of the point of contact between the wheel and the road
+
+        # then we get the position of the front wheel:
+        indexCurvePart =  FullCurve.index(c)
+
+        bestOne = 3000
+        for c in FullCurve[indexCurvePart:indexCurvePart+2]: # for now, we consider that the frond wheel can only be on the two next part [should be changed]
+            for point in c.points:
+                x, y = point
+                x += c.posX - distanceBTpoints/2 
+                
+                d = self.distbtPoints(x, y, self.posCar, yposW1)
+                
+                dist = abs(d - self.lengthCar)
+                if dist < bestOne and x > self.posCar:
+                    bestOne = dist
+                    coordW2 = [x ,y]
+        
+        # unit vector between the two wheels   
+        dist = self.distbtPoints(coordW2[0], coordW2[1], self.posCar, yposW1)     
+        vx = (coordW2[0] - self.posCar) / dist
+        vy = (coordW2[1] - yposW1) / dist
+
+        return yposW1, vx, vy
+
+
+def main():
+    mainCurve = Curve()
+    car = Car()
+
+    while True:
+
+        key = pygame.key.get_pressed()
+
+        for event in pygame.event.get():
+            if event.type == 256  or key[pygame.K_ESCAPE]:
+                exit()
+                
+        mainCurve.updateCurve()
+        
+        yposW1, vx, vy = car.findPosCar(mainCurve.FullCurve)
+        
+        
+        screen.fill((116, 0, 241))
+
+        for curve in mainCurve.FullCurve:
+            curve.posX -= 3
+            screen.blit(curve.surface, (curve.posX, 0))
+        
+        car.draw(yposW1, vx, vy)
+
+        pygame.display.flip()
+
+
+if __name__ == '__main__':
+    main()
