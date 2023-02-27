@@ -5,6 +5,7 @@
 import random
 import pygame
 import numpy as np
+import time
         
 pygame.init()
 
@@ -14,15 +15,6 @@ sizex, heightWindow = pygame.display.get_surface().get_size()
 distanceBTpoints = 250
 
 # M = np.array([[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]])
-
-def getCenter(p):
-    np = [p[0]]
-    for i in range(1, len(p)):
-        x1, y1 = p[i-1]
-        x2, y2 = p[i]
-        np.append([x1 + (x2-x1)/2, y1 + (y2-y1)/2])   
-        np.append(p[i]) 
-    return np
     
 class Curve:
     def __init__(self) -> None:
@@ -38,18 +30,26 @@ class Curve:
         M = np.array([[0, 0, 1], [0, 2, -2], [1, -2, 1]])
         Mt = lambda x: np.array([1, x, x**2])
         
-        return [(np.matmul(np.matmul(Mt(t), M), points)).astype(int) for t in np.arange(0, 1.01, 0.01)][::-1]
+        return [(np.matmul(np.matmul(Mt(t), M), points)).astype(int) for t in np.arange(0, 1.02, 0.01)][::-1]
+    
+    def getCenter(self, p):
+        np = [p[0]]
+        for i in range(1, len(p)):
+            x1, y1 = p[i-1]
+            x2, y2 = p[i]
+            np.append([x1 + (x2-x1)/2, y1 + (y2-y1)/2])   
+            np.append(p[i]) 
+        return np
         
     def addCurve(self):
         # update main points:
         self.mainPoints = [[0, self.mainPoints[1][1]], [distanceBTpoints, self.mainPoints[2][1]], [distanceBTpoints*2, random.randint(heightWindow//2, heightWindow - 150)]]
         
         # get new curve part with bezier
-        curvePart = self.bezierCurve(np.array(getCenter(self.mainPoints)[1:-1]))
+        curvePart = self.bezierCurve(np.array(self.getCenter(self.mainPoints)[1:-1]))
         
-        newCP = CurvePart()
-        newCP.points = curvePart
-        self.FullCurve.append(newCP)
+        # add the curve part to the full curve
+        self.FullCurve.append(CurvePart(curvePart))
 
     def updateCurve(self):
         if not self.FullCurve or self.FullCurve[-1].posX <= sizex - distanceBTpoints :
@@ -59,8 +59,16 @@ class Curve:
             self.FullCurve.pop(0)
 
 class CurvePart:
-    posX = sizex
-    points = []
+    def __init__(self, points) -> None:
+        self.posX = sizex -2
+        self.surface = pygame.Surface((points[-1][0]-points[1][0] , heightWindow))
+        self.create_surface(points)
+        
+    def create_surface(self, p):
+        self.surface.fill((116, 208, 241))
+        for i in range(len(p)-1):
+            pygame.draw.rect(self.surface, (143, 89, 34), pygame.Rect(p[i][0]-125, p[i][1], p[i+1][0]-p[i][0], 1002))
+            pygame.draw.rect(self.surface, (58, 200, 35), pygame.Rect(p[i][0]-125, p[i][1], p[i+1][0]-p[i][0], 30))
     
 mainCurve = Curve()
 while True:
@@ -70,19 +78,10 @@ while True:
             
     mainCurve.updateCurve()
     
-    screen.fill((116, 208, 241))
+    screen.fill((116, 0, 241))
 
     for curve in mainCurve.FullCurve:
-        curve.posX -= 1
-        for i in range(len(curve.points)-1):
-            x = curve.points[i][0] + curve.posX - distanceBTpoints/2 
-            pygame.draw.rect(screen, (143, 89, 34), pygame.Rect(x, curve.points[i][1], curve.points[i+1][0]-curve.points[i][0], 1002))
-            pygame.draw.rect(screen, (58, 200, 35), pygame.Rect(x, curve.points[i][1], curve.points[i+1][0]-curve.points[i][0], 30))
+        curve.posX -= 3
+        screen.blit(curve.surface, (curve.posX, 0))
             
     pygame.display.flip()
-        
-        
-    
-            
-    
-        
