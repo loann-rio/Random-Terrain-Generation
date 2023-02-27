@@ -86,7 +86,7 @@ class Car:
     def distbtPoints(self, a, b, c, d):
         return np.sqrt((a-c)**2+(b-d)**2)
 
-    def draw(self, yposW1, vx, vy):
+    def draw(self, yposW1, vx, vy, boost):
         # get the perpendicular of the vector btw the two wheels
         x = vy
         y = -vx
@@ -108,6 +108,10 @@ class Car:
 
         for i in range(0, len(car), 2):
             pygame.draw.polygon(screen, car[i+1], car[i])
+
+        if boost:
+            for i in range(0, len(flame), 2):
+                pygame.draw.polygon(screen, flame[i+1], flame[i])
 
         pygame.draw.circle(screen, (30, 30, 30), wheels[0], self.lengthCar/5)
         pygame.draw.circle(screen, (30, 30, 30), wheels[1], self.lengthCar/5)
@@ -170,18 +174,19 @@ def main():
             if event.type == 256  or key[pygame.K_ESCAPE]:
                 exit()
                 
-        mainCurve.updateCurve()
+        boost = key[pygame.K_SPACE]
+
+        mainCurve.updateCurve(1 + boost*3)
         
         yposW1, vx, vy = car.findPosCar(mainCurve.FullCurve)
-        
-        
+                
         screen.fill((116, 0, 241))
 
         for curve in mainCurve.FullCurve:
             
             screen.blit(curve.surface, (curve.posX, 0))
         
-        car.draw(yposW1, vx, vy)
+        car.draw(yposW1, vx, vy, boost)
 
         pygame.display.flip()
 
