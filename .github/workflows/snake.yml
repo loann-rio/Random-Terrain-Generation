@@ -1,4 +1,4 @@
-name: Generate Datas
+name: Generate Data
 
 on:
   workflow_dispatch:
