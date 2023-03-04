@@ -8,3 +8,6 @@ This program randomly generates a 2D 'smooth' surface using bezier curve. Curves
 and with a car:
 
 ![gif1](https://user-images.githubusercontent.com/81096844/221549286-cf6e4078-2942-4c78-9fd6-3682a922f6ec.gif)
+
+
+![Snake animation](https://github.com/loann-rio/loann-rio/blob/output/github-contribution-grid-snake.svg)
